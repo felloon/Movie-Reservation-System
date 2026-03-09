@@ -1,5 +1,5 @@
 from database.database import Base
-from sqlalchemy import Column, ForeignKey, Integer, String, Float, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, UniqueConstraint, Boolean
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.orm import relationship
@@ -34,7 +34,7 @@ class Genre(Base):
     __tablename__ = "genres"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    genre = Column(String, nullable=False)
+    genre = Column(String, nullable=False, unique=True)
 
     movie_genres = relationship("MovieGenre", back_populates="genre")
 
@@ -67,6 +67,7 @@ class Report(Base):
     reservation_id = Column(Integer, ForeignKey("reservations.id", ondelete="CASCADE"))
     report = Column(String, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+    updated_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
 
     users = relationship("User", back_populates="reports")
     reservations = relationship("Reservation", back_populates="reports")

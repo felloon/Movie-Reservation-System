@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Response
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import Optional, List
+from datetime import datetime
 from database import database, models
 from app import schemas, auth
 
@@ -11,12 +12,21 @@ router = APIRouter(
 
 @router.get('/', response_model=List[schemas.MovieOut])
 def get_all_movies(
-    db: Session = Depends(database.get_db), 
-    limit: int = 100, 
-    search: Optional[str] = ""
+    db: Session = Depends(database.get_db),
+    limit: int = 100,
+    search: Optional[str] = "",
+    genre: Optional[str] = None,
+    showtime: Optional[datetime] = None
 ):
-    movies_query = db.query(models.Movie).filter(models.Movie.title.contains(search)).limit(limit).all()
-    return movies_query
+    movies = db.query(models.Movie).options(
+        joinedload(models.Movie.showtimes), 
+        joinedload(models.Movie.movie_genres).joinedload(models.MovieGenre.genre)
+    ).group_by(models.Movie.id).filter(models.Movie.title.contains(search)).filter(models.Genre.genre.contains(genre))
+    if showtime: 
+        movies = movies.filter(models.Showtime.showtime == showtime)
+    if genre: 
+        movies = movies.join(models.Movie.movie_genres).join(models.MovieGenre.genre).filter(models.Genre.genre.ilike(f"%{genre}%"))
+    return movies.all()
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=schemas.MovieOut)
 def create_movie(
